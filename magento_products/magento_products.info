@@ -1,0 +1,5 @@
+name = "Magento Products"
+description = "Imports Magento products into Drupal as nodes."
+package = "Magento"
+core = 7.x
+dependencies[] = magento

@@ -1,0 +1,4 @@
+name = "Magento"
+description = "Integrates Drupal with Magento."
+package = "Magento"
+core = 7.x

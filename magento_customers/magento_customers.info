@@ -1,0 +1,6 @@
+name = "Magento Customers"
+description = "Integrates Magento Customers with Drupal users for cart integration."
+package = "Magento"
+core = 7.x
+dependencies[] = magento
+
