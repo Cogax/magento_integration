@@ -150,18 +150,18 @@ function magento_products_import_product($product, &$products_inserted_count = 0
     $node->status = $product['status'] == 1 && (int) $product['visibility'] >= MAGENTO_PRODUCTS_CATALOG_VISIBLITY;
     $node->title = $product['name'];
     $body = $product['description'];
-    $node->body[$language][0]['value']   = $body;
-    $node->body[$language][0]['summary'] = text_summary($body);
-    $node->body[$language][0]['format']  = 'filtered_html';
+    $node->body[LANGUAGE_NONE][0]['value']   = $body;
+    $node->body[LANGUAGE_NONE][0]['summary'] = text_summary($body);
+    $node->body[LANGUAGE_NONE][0]['format']  = 'filtered_html';
     $url = variable_get('magento_store_url');
-    $node->field_magento_url[$language][0]['value'] = $url . '/' . $product['url_path'];
-    $node->field_magento_price[$language][0]['value'] = $product['price'];
-    $node->field_magento_brand_id[$language][0]['value'] = $product['brand_name'];
-    $node->field_magento_designer_id[$language][0]['value'] = $product['designer_name'];
-    $node->field_magento_visibility[$language][0]['value'] = $product['visibility'];
+    $node->field_magento_url[LANGUAGE_NONE][0]['value'] = $url . '/' . $product['url_path'];
+    $node->field_magento_price[LANGUAGE_NONE][0]['value'] = $product['price'];
+    $node->field_magento_brand_id[LANGUAGE_NONE][0]['value'] = $product['brand_name'];
+    $node->field_magento_designer_id[LANGUAGE_NONE][0]['value'] = $product['designer_name'];
+    $node->field_magento_visibility[LANGUAGE_NONE][0]['value'] = $product['visibility'];
     // Add in the first image URL to the product.
     if (isset($product['primary_image'])) {
-      $node->field_magento_image_url[$language][0]['value'] = $product['primary_image']['url'];
+      $node->field_magento_image_url[LANGUAGE_NONE][0]['value'] = $product['primary_image']['url'];
     }
 
     // Let other modules change what is imported.
