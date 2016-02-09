@@ -18,11 +18,11 @@ class MagentoProducts extends Magento {
    *   An array of product_ids to ping in one fell swoop. More efficient than
    *   individual calls.
    */
-  public function getProducts($product_ids) {
+  public function getProducts($product_ids, $store_code) {
     $products = array();
     $calls = array();
     foreach ($product_ids as $product_id) {
-      $calls[] = array('product.info', $product_id);
+      $calls[] = array('product.info', array('productId' => $product_id, 'storeView' => $store_code));
       $calls[] = array('catalog_product_attribute_media.list', $product_id);
     }
     if (!($response = $this->call(NULL, $calls, TRUE))) {

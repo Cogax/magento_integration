@@ -40,27 +40,35 @@ function drush_magento_products_magento_import_product($product_id) {
   $magento_connection = new MagentoConnection();
   $magento = new MagentoProducts($magento_connection);
 
-  $created = 0;
-  $updated = 0;
-  $products = $magento->getProducts(array($product_id));
+  $translation_source = null;
+  $language_stores = _magento_products_languages_store_view();
+  foreach($language_stores as $store_code => $language) {
+    $created = 0;
+    $updated = 0;
 
-  $node = magento_products_import_product($products[$product_id], $created, $updated);
-  if ($updated) {
-    $message = dt('Imported product and updated node @title (@nid).', array(
-      '@title' => $node->title,
-      '@nid' => $node->nid,
-    ));
-    drush_log($message, 'ok');
-  }
-  if ($created) {
-    $message = dt('Imported product and created node @title (@nid).', array(
-      '@title' => $node->title,
-      '@nid' => $node->nid,
-    ));
-    drush_log($message, 'ok');
-  }
-  if (empty($node)) {
-    drush_log(dt('Could not import product. Check the logs for more information.'), 'error');
+    $products = $magento->getProducts(array($product_id), $store_code);
+    $sourceNode = magento_products_import_product($products[$product_id], $created, $updated, $language, $translation_source);
+    if($translation_source == null) {
+      $translation_source = $sourceNode;
+    }
+
+    if ($updated) {
+      $message = dt('Imported product and updated node @title (@nid).', array(
+        '@title' => $node->title,
+        '@nid' => $node->nid,
+      ));
+      drush_log($message, 'ok');
+    }
+    if ($created) {
+      $message = dt('Imported product and created node @title (@nid).', array(
+        '@title' => $node->title,
+        '@nid' => $node->nid,
+      ));
+      drush_log($message, 'ok');
+    }
+    if (empty($node)) {
+      drush_log(dt('Could not import product. Check the logs for more information.'), 'error');
+    }
   }
 }
 

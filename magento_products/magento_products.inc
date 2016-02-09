@@ -68,14 +68,28 @@ function magento_products_process_queue() {
     return;
   }
 
-  // Load up our product batch from Magento and process.
-  $products = $magento->getProducts($product_ids_to_import);
-  $account = user_load(1);
   $products_updated_count = 0;
   $products_inserted_count = 0;
-  foreach ($products as $product) {
-    magento_products_import_product($product, $products_inserted_count, $products_updated_count);
+
+  $language_stores = _magento_products_languages_store_view();
+  $translation_sources = array();
+  foreach($language_stores as $store_code => $language ) {
+    // Load up our product batch from Magento and process.
+    $products = $magento->getProducts($product_ids_to_import, $store_code);
+
+    foreach ($products as $product) {
+      if(!array_key_exists($product['product_id'], $translation_sources)) {
+        $translation_sources[$product['product_id']] = null;
+      }
+
+      $sourceNode = magento_products_import_product($product, $products_inserted_count, $products_updated_count, $language, $translation_sources[$product['product_id']]);
+
+      if($translation_sources[$product['product_id']] == null) {
+        $translation_sources[$product['product_id']] = $sourceNode;
+      }
+    }
   }
+
 
   // Even if we failed we want to delete all the products we queued up.
   // Otherwise, the queue may never shrink.
@@ -107,13 +121,14 @@ function magento_products_process_queue() {
  * @return mixed
  *   Node object on successful import or false otherwise.
  */
-function magento_products_import_product($product, &$products_inserted_count = 0, &$products_updated_count = 0) {
+function magento_products_import_product($product, &$products_inserted_count = 0, &$products_updated_count = 0, $language, $translation_source) {
   try {
     $account = user_load(1);
 
     // Match to existing node if possible.
-    $exists = db_query('SELECT entity_id FROM {magento_products} WHERE magento_product_id = :magento_product_id', array(
+    $exists = db_query('SELECT entity_id FROM {magento_products} WHERE magento_product_id = :magento_product_id AND entity_language = :entity_language', array(
       ':magento_product_id' => $product['product_id'],
+      ':entity_language' => $language,
     ))->fetchField();
     if ($exists) {
       $node = node_load($exists);
@@ -123,7 +138,8 @@ function magento_products_import_product($product, &$products_inserted_count = 0
       $node = new stdClass();
       $node->type = 'magento_product';
       node_object_prepare($node);
-      $node->language = LANGUAGE_NONE;
+      $node->language = $language;
+      $node->translation_source = $translation_source;
       $node->uid = $account->uid;
       $node->name = $account->name;
       $node->comment = 0;
@@ -134,18 +150,18 @@ function magento_products_import_product($product, &$products_inserted_count = 0
     $node->status = $product['status'] == 1 && (int) $product['visibility'] >= MAGENTO_PRODUCTS_CATALOG_VISIBLITY;
     $node->title = $product['name'];
     $body = $product['description'];
-    $node->body[LANGUAGE_NONE][0]['value']   = $body;
-    $node->body[LANGUAGE_NONE][0]['summary'] = text_summary($body);
-    $node->body[LANGUAGE_NONE][0]['format']  = 'filtered_html';
+    $node->body[$language][0]['value']   = $body;
+    $node->body[$language][0]['summary'] = text_summary($body);
+    $node->body[$language][0]['format']  = 'filtered_html';
     $url = variable_get('magento_store_url');
-    $node->field_magento_url[LANGUAGE_NONE][0]['value'] = $url . '/' . $product['url_path'];
-    $node->field_magento_price[LANGUAGE_NONE][0]['value'] = $product['price'];
-    $node->field_magento_brand_id[LANGUAGE_NONE][0]['value'] = $product['brand_name'];
-    $node->field_magento_designer_id[LANGUAGE_NONE][0]['value'] = $product['designer_name'];
-    $node->field_magento_visibility[LANGUAGE_NONE][0]['value'] = $product['visibility'];
+    $node->field_magento_url[$language][0]['value'] = $url . '/' . $product['url_path'];
+    $node->field_magento_price[$language][0]['value'] = $product['price'];
+    $node->field_magento_brand_id[$language][0]['value'] = $product['brand_name'];
+    $node->field_magento_designer_id[$language][0]['value'] = $product['designer_name'];
+    $node->field_magento_visibility[$language][0]['value'] = $product['visibility'];
     // Add in the first image URL to the product.
     if (isset($product['primary_image'])) {
-      $node->field_magento_image_url[LANGUAGE_NONE][0]['value'] = $product['primary_image']['url'];
+      $node->field_magento_image_url[$language][0]['value'] = $product['primary_image']['url'];
     }
 
     // Let other modules change what is imported.
@@ -161,12 +177,13 @@ function magento_products_import_product($product, &$products_inserted_count = 0
       ':bundle' => $bundle,
       ':magento_product_id' => $product['product_id'],
       ':synced' => time(),
+      ':entity_language' => $language,
     );
 
     // Create a link between Drupal or Magento or update the sync date on our
     // existing link. Also, logging.
     if ($exists) {
-      db_query('UPDATE {magento_products} SET synced = :synced WHERE entity_id = :entity_id AND entity_type = :entity_type AND bundle = :bundle AND magento_product_id = :magento_product_id', $values);
+      db_query('UPDATE {magento_products} SET synced = :synced WHERE entity_id = :entity_id AND entity_type = :entity_type AND entity_language = :entity_language, bundle = :bundle AND magento_product_id = :magento_product_id', $values);
 
       // Log to Drupal.
       $message = 'Updated existing Magento Product in Drupal for %title (nid @nid).';
@@ -176,7 +193,7 @@ function magento_products_import_product($product, &$products_inserted_count = 0
       $products_updated_count++;
     }
     else {
-      db_query('INSERT INTO {magento_products} (entity_id, entity_type, bundle, magento_product_id, synced) VALUES (:entity_id, :entity_type, :bundle, :magento_product_id, :synced)', $values);
+      db_query('INSERT INTO {magento_products} (entity_id, entity_type, entity_language, bundle, magento_product_id, synced) VALUES (:entity_id, :entity_type, :entity_language, :bundle, :magento_product_id, :synced)', $values);
 
       // Log to Drupal.
       $message = 'Created new Magento Product in Drupal for %title (nid @nid).';
@@ -198,5 +215,20 @@ function magento_products_import_product($product, &$products_inserted_count = 0
     watchdog('magento_products', $message, $variables, WATCHDOG_ERROR);
 
     return FALSE;
+  }
+}
+
+/**
+ * @return array
+ *  key: store view code
+ *  value: language code
+ */
+function _magento_products_languages_store_view() {
+  $bundle = variable_get('magento_product_node_content_type', 'magento_product');
+  if($bundle != 'magento_product' && translation_supported_type($bundle)) {
+    $languages = array_keys(locale_language_list());
+    return array_combine($languages, $languages);
+  } else {
+    return array(LANGUAGE_NONE => LANGUAGE_NONE);
   }
 }
