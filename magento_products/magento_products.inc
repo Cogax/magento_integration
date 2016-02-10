@@ -19,6 +19,7 @@ function magento_products_import() {
 
   // Find the a set of changed products since our last sync to update.
   $magento_date_last_sync = date('Y-m-d H:i:s', variable_get('magento_product_last_sync', 0));
+  $magento_date_last_sync = date('Y-m-d H:i:s', 0); // todo remove this line in prod!
   $products_to_update = $magento->getProductsUpdatedAfter($magento_date_last_sync);
   $product_ids_to_import = array();
   if (!empty($products_to_update)) {
@@ -156,8 +157,8 @@ function magento_products_import_product($product, &$products_inserted_count = 0
     $url = variable_get('magento_store_url');
     $node->field_magento_url[LANGUAGE_NONE][0]['value'] = $url . '/' . $product['url_path'];
     $node->field_magento_price[LANGUAGE_NONE][0]['value'] = $product['price'];
-    $node->field_magento_brand_id[LANGUAGE_NONE][0]['value'] = $product['brand_name'];
-    $node->field_magento_designer_id[LANGUAGE_NONE][0]['value'] = $product['designer_name'];
+    //$node->field_magento_brand_id[LANGUAGE_NONE][0]['value'] = $product['brand_name'];
+    //$node->field_magento_designer_id[LANGUAGE_NONE][0]['value'] = $product['designer_name'];
     $node->field_magento_visibility[LANGUAGE_NONE][0]['value'] = $product['visibility'];
     // Add in the first image URL to the product.
     if (isset($product['primary_image'])) {

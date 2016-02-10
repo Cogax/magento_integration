@@ -22,7 +22,7 @@ class MagentoProducts extends Magento {
     $products = array();
     $calls = array();
     foreach ($product_ids as $product_id) {
-      $calls[] = array('product.info', array('productId' => $product_id, 'storeView' => $store_code));
+      $calls[] = array('product.info', array('productId' => $product_id, 'storeView' => $store_code, 'attributes' => array('*')));
       $calls[] = array('catalog_product_attribute_media.list', $product_id);
     }
     if (!($response = $this->call(NULL, $calls, TRUE))) {
