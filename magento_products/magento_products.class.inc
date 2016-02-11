@@ -55,14 +55,14 @@ class MagentoProducts extends Magento {
    * @return array
    *   An array of product details.
    */
-  public function getProductByProductId($product_id) {
+  public function getProductByProductId($product_id, $store_code = null) {
     $products = &drupal_static('magento_products');
     if (isset($products[$product_id])) {
       return $products[$product_id];
     }
 
     // Not cached so serve it up.
-    $products[$product_id] = $this->call('product.info', $product_id);
+    $products[$product_id] = $this->call('product.info', array('productId' => $product_id, 'storeView' => $store_code, 'attributes' => array('*')));
     return $products[$product_id];
   }
 
