@@ -6,6 +6,24 @@
  */
 
 /**
+ * This is an implementation of the Singleton design pattern. It will prevent
+ * multiple instances of the SoapClient.
+ */
+class SingletonSoapClient {
+  protected static $instance;
+
+  public static function getInstance($wsdl, array $options = null) {
+    if(self::$instance === NULL) {
+      self::$instance = new SoapClient($wsdl, $options);
+    }
+    return self::$instance;
+  }
+
+  public function __construct() {
+  }
+}
+
+/**
  * Provide central method to interact with the Magento Core API.
  */
 class Magento {
@@ -15,8 +33,12 @@ class Magento {
       $url = $connection->soap_url . '/api/soap/?wsdl';
       $options = array();
 
-      $this->magento = new SoapClient($url, $options);
-      $this->magento_session = $this->magento->login($connection->api_username, $connection->api_password);
+      $this->magento = SingletonSoapClient::getInstance($url, $options);
+
+      // prevent multiple logins
+      if(!isset($magento_session)) {
+        $this->magento_session = $this->magento->login($connection->api_username, $connection->api_password);
+      }
     } catch (Exception $e) {
       $message = 'Fatal error on logging into to the Magento API. Details: <pre>@data</pre>';
       $variables = array('@data' => print_r($e, TRUE));

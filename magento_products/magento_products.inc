@@ -19,8 +19,8 @@ function magento_products_import() {
 
   // Find the a set of changed products since our last sync to update.
   $magento_date_last_sync = date('Y-m-d H:i:s', strtotime('-1 hour', variable_get('magento_product_last_sync', 0)));
+  $magento_date_last_sync = date('Y-m-d H:i:s', 0);
   $products_to_update = $magento->getProductsUpdatedAfter($magento_date_last_sync);
-  $product_ids_to_import = array();
   if (!empty($products_to_update)) {
     foreach ($products_to_update as $product) {
       $values = array(
